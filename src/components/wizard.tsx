@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useRef, type ChangeEvent } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { db, storage } from "@/lib/firebase";
+import { useFirebase, useUser } from "@/firebase";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc, getDoc, type DocumentData } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import {
@@ -27,7 +26,8 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "./ui/badge";
+import { signOut as firebaseSignOut } from "firebase/auth";
+
 
 type LoadingStates = {
   jobCreate: boolean;
@@ -39,7 +39,9 @@ type LoadingStates = {
 };
 
 export function Wizard() {
-  const { user, signOut } = useAuth();
+  const { user } = useUser();
+  const { firestore, auth } = useFirebase();
+  const storage = getStorage(auth.app);
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [finishDialogOpen, setFinishDialogOpen] = useState(false);
@@ -63,12 +65,25 @@ export function Wizard() {
     setLoading(prev => ({ ...prev, [key]: value }));
   };
 
+  const signOut = async () => {
+    try {
+      await firebaseSignOut(auth);
+    } catch (error) {
+      console.error("Error signing out", error);
+      toast({
+        variant: "destructive",
+        title: "Sign Out Failed",
+        description: "Could not sign you out. Please try again.",
+      });
+    }
+  };
+
   const createJob = async () => {
     if (!user) return;
     updateLoading("jobCreate", true);
     try {
       const newJobId = `job_${user.uid.slice(0,5)}_${Date.now()}`;
-      await setDoc(doc(db, "jobs", newJobId), {
+      await setDoc(doc(firestore, "jobs", newJobId), {
         title: "Emergency Repair Task",
         createdAt: new Date().toISOString(),
         status: "New",
@@ -89,7 +104,7 @@ export function Wizard() {
     updateLoading("itemCreate", true);
     try {
         const newItemId = `item_${user.uid.slice(0,5)}_${Date.now()}`;
-        await setDoc(doc(db, "items", newItemId), {
+        await setDoc(doc(firestore, "items", newItemId), {
             name: "Replacement Part",
             sku: `SKU-${Math.floor(Math.random() * 9000) + 1000}`,
             quantity: 10,
@@ -132,7 +147,7 @@ export function Wizard() {
     }
     updateLoading("jobLoad", true);
     try {
-        const docRef = doc(db, "jobs", jobId);
+        const docRef = doc(firestore, "jobs", jobId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
             setLoadedJob(docSnap.data());
@@ -155,7 +170,7 @@ export function Wizard() {
     }
     updateLoading("itemLoad", true);
     try {
-        const docRef = doc(db, "items", itemId);
+        const docRef = doc(firestore, "items", itemId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
             setLoadedItem(docSnap.data());

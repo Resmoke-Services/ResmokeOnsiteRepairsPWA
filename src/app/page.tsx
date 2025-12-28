@@ -1,14 +1,14 @@
 "use client";
 
-import { useAuth } from "@/hooks/use-auth";
+import { useUser } from "@/firebase";
 import { Wizard } from "@/components/wizard";
 import { Login } from "@/components/login";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const { user, isUserLoading } = useUser();
 
-  if (loading) {
+  if (isUserLoading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
