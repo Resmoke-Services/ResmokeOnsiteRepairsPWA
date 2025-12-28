@@ -1,0 +1,122 @@
+/**
+ * Core Philosophy: This ruleset implements a simple, authentication-based security model.
+ * Access to any data is granted to any user who is signed in, including those using
+ * anonymous authentication. This model is suitable for prototypes or internal applications
+ * where all users are trusted and there is no need for granular, user-specific ownership
+ * or role-based permissions. Unauthenticated users are denied all access.
+ *
+ * Data Structure: The data is organized into three distinct, top-level collections:
+ * /jobs, /items, and /images. This flat structure simplifies rule logic as there are
+ * no nested user-specific subcollections that would require more complex checks.
+ *
+ * Key Security Decisions:
+ * - Authentication is Mandatory: The primary security boundary is user authentication.
+ *   `request.auth != null` is the prerequisite for all data access.
+ * - No User-Specific Ownership: The rules do not enforce any concept of data ownership.
+ *   Any authenticated user can create, read, update, or delete any document.
+ * - Flexible Data Schema: In line with a prototyping philosophy, these rules do not
+ *   validate the shape or data types of documents being written. The only validation
+ *   is for relational integrity, ensuring a document's internal `id` field, if provided,
+ *   matches its path and cannot be changed.
+ *
+ * Denormalization for Authorization: Not applicable. The security model is simple enough
+ * that it does not require denormalizing ownership or role data onto documents for
+ * authorization checks. All decisions are based solely on the user's authenticated state.
+ *
+ * Structural Segregation: Not applicable. There is no distinction between public and
+ * private data within the collections, so segregation into separate collections is
+ * unnecessary.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated. This is the foundation of the entire
+     * security model.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Ensures that a write operation targets an existing document and the user is
+     * authenticated. Prevents modifying or deleting non-existent data.
+     */
+    function isAuthenticatedAndResourceExists() {
+      return isSignedIn() && resource != null;
+    }
+
+    /**
+     * On create, validates that the document's internal `id` field matches the
+     * document ID in the path. Enforces data and path consistency.
+     */
+    function isConsistentId(docId) {
+      return request.resource.data.id == docId;
+    }
+
+    /**
+     * On update, ensures the document's internal `id` field cannot be changed.
+     * Protects the primary identifier's immutability.
+     */
+    function isImmutableId() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    // ------------------------------------------------------------------------
+    // Collection Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to job documents. Any authenticated user can
+     *   perform any operation on any job.
+     * @path /jobs/{jobId}
+     * @allow An authenticated user creating a new job document. (auth != null, create)
+     * @deny An unauthenticated user attempting to read a job. (auth == null, get)
+     * @principle Enforces that only authenticated users can access job data,
+     *   treating all authenticated users as equals.
+     */
+    match /jobs/{jobId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isConsistentId(jobId);
+      allow update: if isAuthenticatedAndResourceExists() && isImmutableId();
+      allow delete: if isAuthenticatedAndResourceExists();
+    }
+
+    /**
+     * @description Controls access to inventory item documents. Any authenticated
+     *   user can perform any operation on any item.
+     * @path /items/{itemId}
+     * @allow An authenticated user updating an existing item. (auth != null, update)
+     * @deny An unauthenticated user attempting to list items. (auth == null, list)
+     * @principle Enforces that only authenticated users can access item data,
+     *   treating all authenticated users as equals.
+     */
+    match /items/{itemId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isConsistentId(itemId);
+      allow update: if isAuthenticatedAndResourceExists() && isImmutableId();
+      allow delete: if isAuthenticatedAndResourceExists();
+    }
+
+    /**
+     * @description Controls access to image metadata documents. Any authenticated
+     *   user can perform any operation on any image document.
+     * @path /images/{imageId}
+     * @allow An authenticated user deleting an image document. (auth != null, delete)
+     * @deny An unauthenticated user attempting to create an image doc. (auth == null, create)
+     * @principle Enforces that only authenticated users can access image data,
+     *   treating all authenticated users as equals.
+     */
+    match /images/{imageId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isConsistentId(imageId);
+      allow update: if isAuthenticatedAndResourceExists() && isImmutableId();
+      allow delete: if isAuthenticatedAndResourceExists();
+    }
+  }
+}

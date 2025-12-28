@@ -1,0 +1,173 @@
+{
+  "entities": {
+    "Job": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Job",
+      "type": "object",
+      "description": "Represents a job or repair task within the Resmoke Onsite Repairs application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Job entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title or brief description of the job."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the work to be done for the job."
+        },
+        "createdDate": {
+          "type": "string",
+          "description": "The date the job was created.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the job (e.g., Open, In Progress, Completed)."
+        },
+        "imageIds": {
+          "type": "array",
+          "description": "References to Images associated with this Job. (Relationship: Job 1:N Image)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "createdDate",
+        "status"
+      ]
+    },
+    "Item": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Item",
+      "type": "object",
+      "description": "Represents an inventory item used in the Resmoke Onsite Repairs application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Item entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the inventory item."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the inventory item."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the inventory item in stock."
+        },
+        "unitPrice": {
+          "type": "number",
+          "description": "The unit price of the inventory item."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "quantity",
+        "unitPrice"
+      ]
+    },
+    "Image": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Image",
+      "type": "object",
+      "description": "Represents an image stored in Cloud Storage associated with jobs or items.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Image entity."
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the image stored in Cloud Storage.",
+          "format": "uri"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the image file."
+        },
+        "uploadDate": {
+          "type": "string",
+          "description": "The date the image was uploaded.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "url",
+        "name",
+        "uploadDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/jobs/{jobId}",
+        "definition": {
+          "entityName": "Job",
+          "schema": {
+            "$ref": "#/backend/entities/Job"
+          },
+          "description": "Stores job entities.  No denormalized authorization fields are needed because access is granted to all authenticated users.",
+          "params": [
+            {
+              "name": "jobId",
+              "description": "The unique identifier for the job."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/items/{itemId}",
+        "definition": {
+          "entityName": "Item",
+          "schema": {
+            "$ref": "#/backend/entities/Item"
+          },
+          "description": "Stores item entities. No denormalized authorization fields are needed because access is granted to all authenticated users.",
+          "params": [
+            {
+              "name": "itemId",
+              "description": "The unique identifier for the item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/images/{imageId}",
+        "definition": {
+          "entityName": "Image",
+          "schema": {
+            "$ref": "#/backend/entities/Image"
+          },
+          "description": "Stores image entities. No denormalized authorization fields are needed because access is granted to all authenticated users.",
+          "params": [
+            {
+              "name": "imageId",
+              "description": "The unique identifier for the image."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "Based on the requirements, the Firestore data structure is designed to provide a straightforward setup. The structure ensures clear data separation and simplifies security rules, especially considering only authenticated users (via Google or anonymously) can access the data. Since there are no complex authorization rules (e.g., roles or shared access), we can leverage path-based security.  There are no requirements to secure the app to specific organizations or teams, or shared documents.\n\n*   **/jobs/{jobId}**: Stores job entities.\n*   **/items/{itemId}**: Stores item entities.\n*   **/images/{imageId}**: Stores image entities.\n\nThis structure simplifies security rules, focusing primarily on authenticated access to data.  This direct approach avoids the need for complex denormalization strategies or membership maps, as the application's access control is basic."
+  }
+}
