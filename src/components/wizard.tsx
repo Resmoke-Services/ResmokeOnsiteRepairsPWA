@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, type ChangeEvent } from "react";
@@ -87,7 +88,6 @@ export function Wizard() {
         title: "Emergency Repair Task",
         createdAt: new Date().toISOString(),
         status: "New",
-        assignedTo: user.displayName,
       });
       setJobId(newJobId);
       toast({ title: "Job Created", description: `Job ID: ${newJobId}` });
@@ -108,7 +108,6 @@ export function Wizard() {
             name: "Replacement Part",
             sku: `SKU-${Math.floor(Math.random() * 9000) + 1000}`,
             quantity: 10,
-            addedBy: user.email
         });
         setItemId(newItemId);
         toast({ title: "Item Created", description: `Item ID: ${newItemId}` });
@@ -326,3 +325,5 @@ export function Wizard() {
     </>
   );
 }
+
+    
