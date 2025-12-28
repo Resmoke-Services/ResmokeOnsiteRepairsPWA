@@ -85,9 +85,11 @@ export function Wizard() {
     try {
       const newJobId = `job_${user.uid.slice(0,5)}_${Date.now()}`;
       await setDoc(doc(firestore, "jobs", newJobId), {
+        id: newJobId,
         title: "Emergency Repair Task",
-        createdAt: new Date().toISOString(),
-        status: "New",
+        description: "An urgent repair job that needs immediate attention.",
+        createdDate: new Date().toISOString(),
+        status: "Open"
       });
       setJobId(newJobId);
       toast({ title: "Job Created", description: `Job ID: ${newJobId}` });
@@ -105,9 +107,11 @@ export function Wizard() {
     try {
         const newItemId = `item_${user.uid.slice(0,5)}_${Date.now()}`;
         await setDoc(doc(firestore, "items", newItemId), {
+            id: newItemId,
             name: "Replacement Part",
-            sku: `SKU-${Math.floor(Math.random() * 9000) + 1000}`,
-            quantity: 10,
+            description: "A standard replacement part for common repairs.",
+            quantity: 1,
+            unitPrice: 99.99
         });
         setItemId(newItemId);
         toast({ title: "Item Created", description: `Item ID: ${newItemId}` });
@@ -122,12 +126,20 @@ export function Wizard() {
   const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     if (!user || !event.target.files || event.target.files.length === 0) return;
     const file = event.target.files[0];
-    const newImagePath = `images/${user.uid}/${file.name}`;
+    const newImageId = `img_${user.uid.slice(0,5)}_${Date.now()}`;
+    const newImagePath = `images/${user.uid}/${newImageId}_${file.name}`;
     const storageRef = ref(storage, newImagePath);
     updateLoading("imageUpload", true);
 
     try {
         await uploadBytes(storageRef, file);
+        
+        await setDoc(doc(firestore, "images", newImageId), {
+          id: newImageId,
+          url: '', 
+          name: file.name,
+          uploadDate: new Date().toISOString(),
+        });
         setImagePath(newImagePath);
         toast({ title: "Image Uploaded", description: file.name });
     } catch(e) {
@@ -325,5 +337,3 @@ export function Wizard() {
     </>
   );
 }
-
-    

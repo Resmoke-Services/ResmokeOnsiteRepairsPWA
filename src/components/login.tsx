@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -25,13 +26,21 @@ export function Login() {
     setLoading(true);
     try {
       await signInWithPopup(auth, provider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error signing in with Google", error);
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: "Could not sign you in with Google. Please try again.",
-      });
+      if (error.code === 'auth/popup-closed-by-user') {
+        toast({
+          variant: "destructive",
+          title: "Login Canceled",
+          description: "You closed the login window before completing sign-in.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: "Could not sign you in with Google. Please try again.",
+        });
+      }
     } finally {
       setLoading(false);
     }
