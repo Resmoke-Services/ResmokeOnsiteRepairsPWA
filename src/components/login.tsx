@@ -19,22 +19,27 @@ import { useToast } from "@/hooks/use-toast";
 export function Login() {
   const auth = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start with loading true to handle redirect
 
   useEffect(() => {
     const handleRedirectResult = async () => {
-      setLoading(true);
+      if (!auth) {
+        setLoading(false);
+        return;
+      }
       try {
         const result = await getRedirectResult(auth);
-        // If result is null, it means the user just landed on the page.
-        // If it has a value, it means they are coming back from the redirect.
-        if (result) {
-          // User successfully signed in.
-          // The useUser hook will handle the user state change.
-        }
+        // If result is not null, it means the user is returning from a redirect.
+        // The onAuthStateChanged listener in the provider will handle the user state.
+        // We just need to stop showing the loader.
       } catch (error: any) {
         console.error("Error getting redirect result", error);
-        if (error.code !== 'auth/web-storage-unsupported') {
+        if (error.code === 'auth/popup-closed-by-user') {
+            toast({
+              title: "Login Canceled",
+              description: "You closed the sign-in window before completing the login.",
+            });
+        } else if (error.code !== 'auth/web-storage-unsupported') {
              toast({
               variant: "destructive",
               title: "Login Failed",
@@ -50,6 +55,7 @@ export function Login() {
 
 
   const signIn = async () => {
+    if (!auth) return;
     const provider = new GoogleAuthProvider();
     setLoading(true);
     try {
